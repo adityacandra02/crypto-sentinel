@@ -7,7 +7,12 @@ const Dashboard = () => {
   const [sortOrder, setSortOrder] = useState('desc');
 
   useEffect(() => {
-    getMarketData().then(setCoins);
+    getMarketData().then((data) => {
+      const ranked = [...data]
+        .sort((a, b) => b.market_cap - a.market_cap)
+        .map((coin, index) => ({ ...coin, rank: index + 1 }));
+      setCoins(ranked);
+    });
   }, []);
 
   const handleSort = (field) => {
@@ -25,11 +30,6 @@ const Dashboard = () => {
     const valB = b[sortField] ?? 0;
     return sortOrder === 'asc' ? valA - valB : valB - valA;
   });
-
-  const rankedCoins = sortedCoins.map((coin, index) => ({
-    ...coin,
-    rank: index + 1,
-  }));
 
   const renderArrow = (field) => {
     if (sortField !== field) return '';
@@ -73,7 +73,7 @@ const Dashboard = () => {
           </tr>
         </thead>
         <tbody>
-          {rankedCoins.map((coin) => (
+          {sortedCoins.map((coin) => (
             <tr key={coin.id} style={{ borderBottom: '1px solid #374151' }}>
               <td style={{ padding: '10px' }}>{coin.rank}</td>
               <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
