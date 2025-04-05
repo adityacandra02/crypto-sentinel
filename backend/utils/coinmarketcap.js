@@ -22,8 +22,11 @@ module.exports = async function fetchTopCoins(limit = 10) {
       market_cap: coin.quote.USD.market_cap,
       volume: coin.quote.USD.volume_24h,
       percent_change_1d: coin.quote.USD.percent_change_24h,
+      percent_change_7d: coin.quote.USD.percent_change_7d,
       percent_change_30d: coin.quote.USD.percent_change_30d,
+      percent_change_90d: coin.quote.USD.percent_change_90d
     }));
+    
   } catch (error) {
     console.error('Error fetching data:', error);
     return [];

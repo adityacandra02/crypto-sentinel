@@ -22,9 +22,12 @@ const Dashboard = () => {
             <th>Market Cap</th>
             <th>24h Volume</th>
             <th>1d Change (%)</th>
+            <th>7d Change (%)</th>
             <th>30d Change (%)</th>
+            <th>90d Change (%)</th>
         </tr>
         </thead>
+
 
         <tbody>
         {coins.map((coin) => (
@@ -34,10 +37,13 @@ const Dashboard = () => {
             <td>${coin.market_cap.toLocaleString()}</td>
             <td>${coin.volume.toLocaleString()}</td>
             <td>{coin.percent_change_1d?.toFixed(2)}%</td>
+            <td>{coin.percent_change_7d?.toFixed(2)}%</td>
             <td>{coin.percent_change_30d?.toFixed(2)}%</td>
+            <td>{coin.percent_change_90d?.toFixed(2)}%</td>
             </tr>
         ))}
         </tbody>
+
 
         </table>
       )}
