@@ -1,5 +1,5 @@
 const fetchTopCoins = require('./utils/coinmarketcap');
-require('dotenv').config();
+
 
 exports.handler = async function (event, context) {
   try {
