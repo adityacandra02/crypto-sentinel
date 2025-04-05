@@ -1,7 +1,7 @@
 const fetch = require('node-fetch');
 require('dotenv').config();
 
-module.exports = async function fetchTopCoins(limit = 10) {
+module.exports = async function fetchTopCoins(limit = 100) {
   const apiKey = process.env.CMC_API_KEY;
   const url = `https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=${limit}&convert=USD`;
 
