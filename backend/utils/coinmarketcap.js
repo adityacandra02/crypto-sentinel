@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const fetch = require('node-fetch'); 
 module.exports = async function fetchTopCoins(limit = 10) { 
  

@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "dotenv": "^16.4.7",
+    "netlify-cli": "^19.1.5",
+    "node-fetch": "^3.3.2"
+  }
+}
