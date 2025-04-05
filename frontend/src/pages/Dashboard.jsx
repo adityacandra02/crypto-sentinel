@@ -15,26 +15,30 @@ const Dashboard = () => {
         <p>Loading...</p>
       ) : (
         <table border="1" cellPadding="10">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Price (USD)</th>
-              <th>Market Cap</th>
-              <th>24h Volume</th>
-              <th>7d Change (%)</th>
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Price (USD)</th>
+            <th>Market Cap</th>
+            <th>24h Volume</th>
+            <th>1d Change (%)</th>
+            <th>30d Change (%)</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        {coins.map((coin) => (
+            <tr key={coin.id}>
+            <td>{coin.name} ({coin.symbol.toUpperCase()})</td>
+            <td>${coin.price.toFixed(2)}</td>
+            <td>${coin.market_cap.toLocaleString()}</td>
+            <td>${coin.volume.toLocaleString()}</td>
+            <td>{coin.percent_change_1d?.toFixed(2)}%</td>
+            <td>{coin.percent_change_30d?.toFixed(2)}%</td>
             </tr>
-          </thead>
-          <tbody>
-            {coins.map((coin) => (
-              <tr key={coin.id}>
-                <td>{coin.name} ({coin.symbol.toUpperCase()})</td>
-                <td>${coin.price.toFixed(2)}</td>
-                <td>${coin.market_cap.toLocaleString()}</td>
-                <td>${coin.volume.toLocaleString()}</td>
-                <td>{coin.percent_change_7d?.toFixed(2)}%</td>
-              </tr>
-            ))}
-          </tbody>
+        ))}
+        </tbody>
+
         </table>
       )}
     </div>
