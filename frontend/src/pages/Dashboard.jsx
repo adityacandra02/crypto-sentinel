@@ -36,6 +36,16 @@ const Dashboard = () => {
     return sortOrder === 'asc' ? ' ▲' : ' ▼';
   };
 
+  const formatCompactUSD = (number) => {
+    if (!number || isNaN(number)) return '-';
+    const abs = Math.abs(number);
+    if (abs >= 1e12) return `$ ${(number / 1e12).toFixed(2)}T`;
+    if (abs >= 1e9) return `$ ${(number / 1e9).toFixed(2)}B`;
+    if (abs >= 1e6) return `$ ${(number / 1e6).toFixed(2)}M`;
+    if (abs >= 1e3) return `$ ${(number / 1e3).toFixed(2)}K`;
+    return `$ ${number.toFixed(2)}`;
+  };
+
   return (
     <div style={{
       backgroundColor: '#111827',
@@ -78,8 +88,8 @@ const Dashboard = () => {
               <td style={{ padding: '10px' }}>{coin.rank}</td>
               <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
               <td style={{ padding: '10px' }}>${coin.price.toFixed(2)}</td>
-              <td style={{ padding: '10px' }}>${coin.market_cap.toLocaleString()}</td>
-              <td style={{ padding: '10px' }}>${coin.volume.toLocaleString()}</td>
+              <td style={{ padding: '10px' }}>{formatCompactUSD(coin.market_cap)}</td>
+              <td style={{ padding: '10px' }}>{formatCompactUSD(coin.volume)}</td>
               <td style={{
                 padding: '10px',
                 color: coin.percent_change_1d > 0 ? '#10B981' : '#EF4444'
