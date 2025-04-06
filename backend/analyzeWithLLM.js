@@ -4,6 +4,16 @@ exports.handler = async (event) => {
   try {
     const { coins } = JSON.parse(event.body);
 
+    if (!coins || coins.length === 0) {
+      console.error('[LLM] No coins received.');
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'No coin data received' })
+      };
+    }
+
+    console.log('[LLM] Received top coins:', coins.slice(0, 3));
+
     const topCoins = coins
       .slice(0, 10)
       .map((coin, i) =>
@@ -12,11 +22,10 @@ exports.handler = async (event) => {
       .join('\n');
 
     const prompt = `
-You are an expert crypto analyst. Analyze the following top coins and provide:
-
-1. Coins that are good for long-term holding and why
-2. Observations about weekly performance
-3. Short summary under 150 words
+You're a crypto analyst. Based on the data below, provide:
+- Which coins look strong for long-term holding and why
+- Any patterns or concerns
+- Market summary (max 150 words)
 
 Top Coins:
 ${topCoins}
@@ -29,27 +38,42 @@ ${topCoins}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4-1106-preview', // GPT-4 mini (faster, cheaper)
+        model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
     });
 
+    if (!response.ok) {
+      console.error('[LLM] OpenAI HTTP error:', response.status, await response.text());
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'OpenAI API request failed.' })
+      };
+    }
+
     const json = await response.json();
 
-    if (!json.choices || !json.choices[0]) {
+    if (!json.choices || !json.choices[0]?.message?.content) {
+      console.error('[LLM] No choices/content in response:', JSON.stringify(json, null, 2));
       throw new Error('No response from LLM');
     }
 
+    const message = json.choices[0].message.content;
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ insight: json.choices[0].message.content })
+      body: JSON.stringify({ insight: message })
     };
+
   } catch (err) {
     console.error('LLM Analysis Error:', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to generate insights' })
+      body: JSON.stringify({
+        error: 'Failed to generate insights',
+        detail: err.message
+      })
     };
   }
 };
