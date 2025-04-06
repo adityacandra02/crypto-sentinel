@@ -1,5 +1,5 @@
+// frontend/src/pages/WatchlistInsight.jsx
 import React, { useState, useEffect } from 'react';
-import { getWatchlistData } from '../services/api';
 
 function WatchlistInsight() {
   const [coins, setCoins] = useState([]);
@@ -8,7 +8,10 @@ function WatchlistInsight() {
   const [selectedModel, setSelectedModel] = useState('');
 
   useEffect(() => {
-    getWatchlistData().then(setCoins);
+    fetch('/.netlify/functions/fetchWatchlistData')
+      .then(res => res.json())
+      .then(setCoins)
+      .catch(() => setCoins([]));
   }, []);
 
   const handleGenerateInsights = async (model) => {
@@ -19,7 +22,7 @@ function WatchlistInsight() {
       const response = await fetch('/.netlify/functions/analyzeWithLLMWatchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coins, model }),
+        body: JSON.stringify({ filteredCoins: coins, model }),
       });
       const data = await response.json();
       setInsight(data.insight || 'No insight received.');
@@ -31,40 +34,55 @@ function WatchlistInsight() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <h1 className="text-2xl font-bold mb-4">📈 Watchlist Insights</h1>
+    <div style={{
+      backgroundColor: '#111827',
+      color: '#F9FAFB',
+      minHeight: '100vh',
+      padding: '2rem',
+      fontFamily: 'sans-serif'
+    }}>
+      <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>📌 Watchlist Insights</h1>
 
-      <div className="flex gap-4 mb-6 flex-wrap">
+      <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
         <button
           onClick={() => handleGenerateInsights('gpt-3.5-turbo')}
-          className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
           disabled={loading}
+          style={{ backgroundColor: '#2563eb', color: 'white', padding: '10px', borderRadius: '5px' }}
         >
-          GPT-3.5
+          Generate Insight - gpt-3.5-turbo
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4-1106-preview')}
-          className="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded text-sm"
           disabled={loading}
+          style={{ backgroundColor: '#9333ea', color: 'white', padding: '10px', borderRadius: '5px' }}
         >
-          GPT-4o Mini
+          Generate Insight - gpt-4o-mini
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4o')}
-          className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm"
           disabled={loading}
+          style={{ backgroundColor: '#10b981', color: 'white', padding: '10px', borderRadius: '5px' }}
         >
-          GPT-4o
+          Generate Insight - gpt-4o
         </button>
       </div>
 
       {selectedModel && (
-        <p className="mb-2 text-gray-400">Answer: {selectedModel}</p>
+        <p style={{ marginBottom: '1rem', color: '#9CA3AF' }}>
+          Answer generated using: <strong>{selectedModel}</strong>
+        </p>
       )}
 
       {insight && (
-        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner overflow-y-auto max-h-[600px]">
-          <pre className="whitespace-pre-wrap leading-relaxed text-gray-200">{insight}</pre>
+        <div style={{
+          backgroundColor: '#1F2937',
+          padding: '1.25rem',
+          borderRadius: '8px',
+          whiteSpace: 'pre-wrap',
+          overflowY: 'auto',
+          maxHeight: '600px'
+        }}>
+          {insight}
         </div>
       )}
     </div>

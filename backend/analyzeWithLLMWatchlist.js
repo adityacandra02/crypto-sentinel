@@ -1,49 +1,47 @@
-const { Configuration, OpenAIApi } = require("openai");
+// backend/analyzeWithLLMWatchlist.js
+const { OpenAI } = require('openai');
 
-exports.handler = async function (event, context) {
+exports.handler = async function (event) {
   try {
     const body = JSON.parse(event.body);
-    const coins = body.coins || [];
-    const model = body.model || "gpt-3.5-turbo";
+    const filteredCoins = body.filteredCoins || [];
+    const model = body.model || 'gpt-3.5-turbo';
 
-    const stableCoins = ['USDT', 'USDC', 'DAI', 'TUSD', 'BUSD'];
-    const filteredCoins = coins.filter((coin) => !stableCoins.includes(coin.symbol?.toUpperCase()));
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const formatted = filteredCoins.map((coin, i) => {
-      return `${i + 1}. ${coin.name} (${coin.symbol})\n` +
-        `Price: $${coin.price?.toFixed(2)} | Market Cap: $${Math.round(coin.market_cap)}\n` +
-        `1d: ${coin.percent_change_1d}% | 7d: ${coin.percent_change_7d}% | 30d: ${coin.percent_change_30d}% | 90d: ${coin.percent_change_90d}%\n`;
-    }).join('\n');
+    const prompt = `
+You are a professional crypto market analyst.
 
-    const prompt = `You are a crypto analyst. Analyze the following WATCHLIST coins.
+Analyze the following watchlist coins, considering:
+- Current market values (price, market cap, % change)
+- Overall market sentiment (especially in the US)
+- Recent major news headlines from crypto sources (e.g., CoinDesk, CoinTelegraph, Decrypt)
 
-Consider:
-- Market values: price, market cap, % changes
-- US market sentiment
-- Latest crypto news from CoinDesk, CoinTelegraph, etc.
+Ignore stablecoins. Group them into: HOLD, SELL, WATCH — and explain why.
 
-Provide recommendation for each coin (HOLD / SELL / WATCH) and explain briefly.
+COIN DATA:
+${JSON.stringify(filteredCoins, null, 2)}
 
-WATCHLIST COINS:\n\n${formatted}`;
+Only include meaningful insights. Write in clear sections: HOLD, SELL, WATCH.
+`;
 
-    const openai = new OpenAIApi(new Configuration({ apiKey: process.env.OPENAI_API_KEY }));
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: 'user', content: prompt }],
       temperature: 0.7
     });
 
-    const reply = completion?.data?.choices?.[0]?.message?.content || '';
+    const insight = completion.choices[0].message.content;
+
     return {
       statusCode: 200,
-      body: JSON.stringify({ insight: reply })
+      body: JSON.stringify({ insight })
     };
-
   } catch (err) {
-    console.error("[LLM Watchlist ERROR]", err);
+    console.error('[LLM Watchlist ERROR]', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ insight: "Error generating insights." })
+      body: JSON.stringify({ error: 'Failed to generate insight.' })
     };
   }
 };
