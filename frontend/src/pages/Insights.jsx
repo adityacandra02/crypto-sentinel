@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { getMarketData } from '../services/api';
 
-function Insights() {
+const Insights = () => {
   const [coins, setCoins] = useState([]);
   const [insight, setInsight] = useState('');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getMarketData().then((data) => setCoins(data));
+    getMarketData().then(setCoins);
   }, []);
 
   const handleGenerateInsights = async () => {
@@ -17,39 +17,55 @@ function Insights() {
       const response = await fetch('/.netlify/functions/analyzeWithLLM', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coins }),
+        body: JSON.stringify({ coins })
       });
       const data = await response.json();
       setInsight(data.insight || 'No insight received.');
-    } catch (error) {
-      setInsight('Error generating insight.');
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error('Insight fetch error:', err);
+      setInsight('Failed to generate insights.');
     }
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">🧠 AI Market Insights</h1>
-        <button
-          onClick={handleGenerateInsights}
-          className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
-          disabled={loading}
-        >
-          {loading ? 'Analyzing...' : 'Generate Insights'}
-        </button>
-      </div>
+    <div style={{
+      backgroundColor: '#111827',
+      color: '#F9FAFB',
+      minHeight: '100vh',
+      padding: '2rem',
+      fontFamily: 'sans-serif'
+    }}>
+      <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>🧠 AI Market Insights</h1>
+      <button
+        onClick={handleGenerateInsights}
+        disabled={loading}
+        style={{
+          backgroundColor: '#2563EB',
+          color: '#F9FAFB',
+          padding: '0.75rem 1.25rem',
+          border: 'none',
+          borderRadius: '0.5rem',
+          fontSize: '1rem',
+          cursor: 'pointer',
+          marginBottom: '1.5rem'
+        }}
+      >
+        {loading ? 'Analyzing...' : 'Generate Insights'}
+      </button>
 
-      {insight && (
-        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner">
-          <pre className="whitespace-pre-wrap leading-relaxed text-gray-200">
-            {insight}
-          </pre>
-        </div>
-      )}
+      <div style={{
+        backgroundColor: '#1F2937',
+        padding: '1.5rem',
+        borderRadius: '0.5rem',
+        whiteSpace: 'pre-line',
+        lineHeight: '1.6',
+        fontSize: '1rem'
+      }}>
+        {insight || 'Click the button above to generate market insights.'}
+      </div>
     </div>
   );
-}
+};
 
 export default Insights;

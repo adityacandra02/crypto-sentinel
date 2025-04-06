@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
+import Insights from './pages/Insights';
 
 function App() {
   return (
@@ -10,7 +11,8 @@ function App() {
       </nav>
       <Routes>
         <Route path="/" element={<Dashboard />} />
-       </Routes>
+        <Route path="/insights" element={<Insights />} />
+      </Routes>
     </Router>
   );
 }
