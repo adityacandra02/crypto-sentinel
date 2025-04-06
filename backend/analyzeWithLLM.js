@@ -1,81 +1,52 @@
-const fetch = require('node-fetch');
+// backend/analyzeWithLLM.js
+const { OpenAI } = require('openai');
 
-exports.handler = async (event) => {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+exports.handler = async function (event, context) {
   try {
-    const { coins } = JSON.parse(event.body);
-
-    if (!coins || coins.length === 0) {
-      console.error('[LLM] No coins received.');
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'No coin data received' })
-      };
-    }
-
-    console.log('[LLM] Received top coins:', coins.slice(0, 3));
+    const { coins, model } = JSON.parse(event.body);
+    const selectedModel = model || 'gpt-3.5-turbo';
 
     const topCoins = coins
-      .slice(0, 10)
-      .map((coin, i) =>
-        `${i + 1}. ${coin.name} (${coin.symbol}) - $${coin.price.toFixed(2)} - 7d: ${coin.percent_change_7d?.toFixed(2)}%`
-      )
+      .slice(0, 25) // now analyzing only top 25
+      .map((coin, i) => {
+        return `${i + 1}. ${coin.name} (${coin.symbol}) - Price: $${coin.price.toFixed(2)}, Market Cap: $${(
+          coin.market_cap / 1e9
+        ).toFixed(2)}B, 1d: ${coin.percent_change_1d?.toFixed(2)}%, 7d: ${coin.percent_change_7d?.toFixed(
+          2
+        )}%, 30d: ${coin.percent_change_30d?.toFixed(2)}%, 90d: ${coin.percent_change_90d?.toFixed(2)}%`;
+      })
       .join('\n');
 
-    const prompt = `
-You're a crypto analyst. Based on the data below, provide:
-- Which coins look strong for long-term holding and why
-- Any patterns or concerns
-- Market summary (max 150 words)
+    const prompt = `You are a crypto market analyst. Based on the following top 25 coin data, provide long-term investment insights. Suggest coins to hold, and which to be cautious of:
 
-Top Coins:
 ${topCoins}
-`;
 
-    const model = 'gpt-4-turbo'; // ✅ or use 'gpt-3.5-turbo' for free
+Be concise and explain your reasoning.`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
-      })
+    const response = await openai.chat.completions.create({
+      model: selectedModel,
+      messages: [
+        { role: 'system', content: 'You are a helpful crypto analyst.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 1000,
     });
 
-    if (!response.ok) {
-      console.error('[LLM] OpenAI HTTP error:', response.status, await response.text());
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: `OpenAI API failed with status ${response.status}` })
-      };
-    }
-
-    const json = await response.json();
-
-    if (!json.choices || !json.choices[0]?.message?.content) {
-      console.error('[LLM] No choices/content in response:', JSON.stringify(json, null, 2));
-      throw new Error('No response from LLM');
-    }
-
-    const message = json.choices[0].message.content;
-
+    const result = response.choices[0]?.message?.content;
     return {
       statusCode: 200,
-      body: JSON.stringify({ insight: message })
+      body: JSON.stringify({ insight: result }),
     };
-
-  } catch (err) {
-    console.error('LLM Analysis Error:', err);
+  } catch (error) {
+    console.error('[LLM] OpenAI Error:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        error: 'Failed to generate insights',
-        detail: err.message
-      })
+      body: JSON.stringify({ error: 'LLM Analysis Error: ' + error.message }),
     };
   }
 };
