@@ -1,119 +1,128 @@
 import React, { useEffect, useState } from 'react';
 import { getMarketData } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
-const Dashboard = () => {
+function Dashboard() {
   const [coins, setCoins] = useState([]);
-  const [sortField, setSortField] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
+  const navigate = useNavigate();
 
   useEffect(() => {
     getMarketData().then((data) => {
-      const ranked = [...data]
-        .sort((a, b) => b.market_cap - a.market_cap)
-        .map((coin, index) => ({ ...coin, rank: index + 1 }));
-      setCoins(ranked);
+      setCoins(data);
+      setLoading(false);
     });
   }, []);
 
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortOrder('desc');
-    }
+  const sortData = (key) => {
+    const order = sortKey === key && sortOrder === 'asc' ? 'desc' : 'asc';
+    const sorted = [...coins].sort((a, b) => {
+      const valA = a[key];
+      const valB = b[key];
+      return order === 'asc' ? valA - valB : valB - valA;
+    });
+    setCoins(sorted);
+    setSortKey(key);
+    setSortOrder(order);
   };
 
-  const sortedCoins = [...coins].sort((a, b) => {
-    if (!sortField) return 0;
-    const valA = a[sortField] ?? 0;
-    const valB = b[sortField] ?? 0;
-    return sortOrder === 'asc' ? valA - valB : valB - valA;
-  });
-
-  const renderArrow = (field) => {
-    if (sortField !== field) return '';
-    return sortOrder === 'asc' ? ' ▲' : ' ▼';
-  };
-
-  const formatCompactUSD = (number) => {
-    if (!number || isNaN(number)) return '-';
-    const abs = Math.abs(number);
-    if (abs >= 1e12) return `$ ${(number / 1e12).toFixed(2)}T`;
-    if (abs >= 1e9) return `$ ${(number / 1e9).toFixed(2)}B`;
-    if (abs >= 1e6) return `$ ${(number / 1e6).toFixed(2)}M`;
-    if (abs >= 1e3) return `$ ${(number / 1e3).toFixed(2)}K`;
-    return `$ ${number.toFixed(2)}`;
+  const formatMillions = (num) => {
+    if (!num) return '-';
+    if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
+    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
+    return `$${(num / 1e6).toFixed(2)}M`;
   };
 
   return (
-    <div style={{
-      backgroundColor: '#0D1117',
-      color: '#E6EDF3',
-      minHeight: '100vh',
-      padding: '2rem',
-      fontFamily: 'Segoe UI, sans-serif'
-    }}>
-      <h1 style={{
-        fontSize: '2rem',
-        marginBottom: '2rem',
-        textAlign: 'center',
-        color: '#58A6FF'
-      }}>
-        📈 Crypto Market Dashboard
-      </h1>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-          <thead>
-            <tr style={{ backgroundColor: '#161B22' }}>
-              {['Rank', 'Name', 'Price (USD)'].map(col => (
-                <th key={col} style={{ padding: '12px', borderBottom: '1px solid #30363D' }}>{col}</th>
-              ))}
-              {[
-                { field: 'market_cap', label: 'Market Cap' },
-                { field: 'volume', label: '24h Volume' },
-                { field: 'percent_change_1d', label: '1d Change %' },
-                { field: 'percent_change_7d', label: '7d Change %' },
-                { field: 'percent_change_30d', label: '30d Change %' },
-                { field: 'percent_change_90d', label: '90d Change %' },
-              ].map(({ field, label }) => (
-                <th
-                  key={field}
-                  onClick={() => handleSort(field)}
-                  style={{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #30363D' }}
-                >
-                  {label}{renderArrow(field)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedCoins.map((coin) => (
-              <tr key={coin.id} style={{ borderBottom: '1px solid #30363D' }}>
-                <td style={{ padding: '10px' }}>{coin.rank}</td>
-                <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
-                <td style={{ padding: '10px' }}>${coin.price.toFixed(2)}</td>
-                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.market_cap)}</td>
-                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.volume)}</td>
-                {['percent_change_1d', 'percent_change_7d', 'percent_change_30d', 'percent_change_90d'].map((key) => (
-                  <td
-                    key={key}
-                    style={{
-                      padding: '10px',
-                      color: coin[key] >= 0 ? '#3FB950' : '#F85149'
-                    }}
-                  >
-                    {coin[key]?.toFixed(2)}%
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="min-h-screen bg-gray-900 text-white p-4 font-sans">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">📊 Crypto Dashboard</h1>
+        <button
+          onClick={() => navigate('/insights')}
+          className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
+        >
+          🧠 Go to AI Insights
+        </button>
       </div>
+
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-gray-800">
+              <tr>
+                <th className="px-4 py-2">Rank</th>
+                <th className="px-4 py-2">Name</th>
+                <th className="px-4 py-2">Price</th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('market_cap')}
+                >
+                  Market Cap {sortKey === 'market_cap' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('volume')}
+                >
+                  24h Volume {sortKey === 'volume' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('percent_change_1d')}
+                >
+                  1d % {sortKey === 'percent_change_1d' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('percent_change_7d')}
+                >
+                  7d % {sortKey === 'percent_change_7d' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('percent_change_30d')}
+                >
+                  30d % {sortKey === 'percent_change_30d' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+                <th
+                  className="px-4 py-2 cursor-pointer"
+                  onClick={() => sortData('percent_change_90d')}
+                >
+                  90d % {sortKey === 'percent_change_90d' && (sortOrder === 'asc' ? '▲' : '▼')}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {coins.map((coin, index) => (
+                <tr key={coin.id} className="border-b border-gray-700">
+                  <td className="px-4 py-2">{index + 1}</td>
+                  <td className="px-4 py-2">{coin.name} ({coin.symbol})</td>
+                  <td className="px-4 py-2">${coin.price.toFixed(2)}</td>
+                  <td className="px-4 py-2">{formatMillions(coin.market_cap)}</td>
+                  <td className="px-4 py-2">{formatMillions(coin.volume)}</td>
+                  <td className={`px-4 py-2 ${coin.percent_change_1d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {coin.percent_change_1d?.toFixed(2)}%
+                  </td>
+                  <td className={`px-4 py-2 ${coin.percent_change_7d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {coin.percent_change_7d?.toFixed(2)}%
+                  </td>
+                  <td className={`px-4 py-2 ${coin.percent_change_30d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {coin.percent_change_30d?.toFixed(2)}%
+                  </td>
+                  <td className={`px-4 py-2 ${coin.percent_change_90d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {coin.percent_change_90d?.toFixed(2)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
-};
+}
 
 export default Dashboard;
