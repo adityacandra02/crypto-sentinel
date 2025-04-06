@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { getMarketData } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 
 function Dashboard() {
   const [coins, setCoins] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [insight, setInsight] = useState('');
-  const [insightLoading, setInsightLoading] = useState(false);
   const [sortKey, setSortKey] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
+  const navigate = useNavigate();
 
   useEffect(() => {
     getMarketData().then((data) => {
@@ -28,24 +28,6 @@ function Dashboard() {
     setSortOrder(order);
   };
 
-  const handleGenerateInsights = async () => {
-    setInsightLoading(true);
-    setInsight('');
-    try {
-      const response = await fetch('/.netlify/functions/analyzeWithLLM', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coins })
-      });
-      const data = await response.json();
-      setInsight(data.insight || 'No insight received.');
-    } catch (error) {
-      setInsight('Error generating insight.');
-    } finally {
-      setInsightLoading(false);
-    }
-  };
-
   const formatMillions = (num) => {
     if (!num) return '-';
     if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
@@ -58,11 +40,10 @@ function Dashboard() {
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">📊 Crypto Dashboard</h1>
         <button
-          onClick={handleGenerateInsights}
+          onClick={() => navigate('/insights')}
           className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
-          disabled={insightLoading}
         >
-          {insightLoading ? 'Analyzing...' : '🧠 Generate Insights'}
+          🧠 Go to AI Insights
         </button>
       </div>
 
@@ -138,15 +119,6 @@ function Dashboard() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {insight && (
-        <div className="bg-gray-800 p-4 mt-6 rounded shadow-inner">
-          <h2 className="text-xl font-semibold mb-2">AI Market Insights</h2>
-          <pre className="whitespace-pre-wrap leading-relaxed text-gray-200">
-            {insight}
-          </pre>
         </div>
       )}
     </div>
