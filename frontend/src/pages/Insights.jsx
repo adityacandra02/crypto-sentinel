@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMarketData } from '../services/api';
+import ReactMarkdown from 'react-markdown';
 
 function Insights() {
   const [coins, setCoins] = useState([]);
@@ -28,25 +29,6 @@ function Insights() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatInsightSections = (text) => {
-    const sections = text.split(/(?=\n[A-Z ]+\n)/g); // Split by uppercase section titles
-    return sections.map((section, idx) => {
-      const lines = section.trim().split('\n');
-      const header = lines[0];
-      const content = lines.slice(1);
-      return (
-        <div key={idx} className="mb-6">
-          <h3 className="text-lg font-bold text-blue-300 mb-2">{header}</h3>
-          <ul className="list-disc list-inside space-y-1">
-            {content.map((line, i) => (
-              <li key={i} className="text-gray-200">{line}</li>
-            ))}
-          </ul>
-        </div>
-      );
-    });
   };
 
   return (
@@ -82,8 +64,8 @@ function Insights() {
       )}
 
       {insight && (
-        <div className="bg-gray-800 p-4 rounded shadow-inner max-h-[500px] overflow-y-auto w-full">
-          {formatInsightSections(insight)}
+        <div className="bg-gray-800 p-4 rounded shadow-inner max-h-[600px] overflow-y-auto prose prose-invert">
+          <ReactMarkdown>{insight}</ReactMarkdown>
         </div>
       )}
     </div>
