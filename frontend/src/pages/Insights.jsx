@@ -1,6 +1,7 @@
 // frontend/src/pages/Insights.jsx
 import React, { useState, useEffect } from 'react';
 import { getMarketData } from '../services/api';
+import ReactMarkdown from 'react-markdown';
 
 function Insights() {
   const [coins, setCoins] = useState([]);
@@ -64,8 +65,8 @@ function Insights() {
       )}
 
       {insight && (
-        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner max-h-[600px] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed text-gray-200">
-          {insight}
+        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner max-h-[600px] overflow-y-auto overflow-x-hidden leading-relaxed text-gray-200">
+          <ReactMarkdown>{insight}</ReactMarkdown>
         </div>
       )}
     </div>

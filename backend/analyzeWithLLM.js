@@ -20,19 +20,27 @@ exports.handler = async function (event, context) {
       })
       .join('\n');
 
-    const prompt = `You are a professional crypto market analyst.
+      const prompt = `You are a professional crypto market analyst.
 
-Analyze the following TOP 25 coin data, considering:
-- Current market values (price, market cap, % change)
-- Overall market sentiment (especially in the US)
-- Recent major news headlines from top crypto sources like CoinDesk, CoinTelegraph, Decrypt
-
-For each section (HOLD, SELL, WATCH), group coins accordingly and explain why.
-
-COIN DATA:
-${topCoins}
-
-Only include meaningful insights. Write in clear sections: HOLD, SELL, WATCH.`;
+      Your task is to analyze the following TOP 25 cryptocurrencies using the following perspectives:
+      1. **Current Market Metrics** – Evaluate price, market capitalization, and recent percentage changes (1D, 7D, 30D, 90D).
+      2. **Market Sentiment** – Consider global sentiment with a focus on the United States (e.g., investor fear/greed, regulatory trends, macroeconomic signals).
+      3. **Recent Crypto News** – Reflect any major headlines or narratives (from sources like CoinDesk, CoinTelegraph, Decrypt).
+      
+      **Your output should be grouped into the following categories:**
+      - **HOLD**: Coins with strong fundamentals and stability.
+      - **SELL**: Coins that show signs of weakness or risk.
+      - **WATCH**: Coins that have potential but need close observation.
+      
+      For each group:
+      - List the coin symbols or names.
+      - Give a concise explanation why the coin fits in that group.
+      - Highlight any relevant news or metrics that influence your judgment.
+      
+      ### COIN DATA:
+      ${topCoins}
+      
+      Make sure the output is formatted in markdown for readability, using bullet points and section headers (e.g., ### HOLD). Only include useful insights, avoid repetition.`;
 
     const response = await openai.chat.completions.create({
       model: selectedModel,
