@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getMarketData } from '../services/api';
+import ReactMarkdown from 'react-markdown';
 
 function Insights() {
   const [coins, setCoins] = useState([]);
@@ -31,27 +32,60 @@ function Insights() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6 overflow-x-hidden">
-      <h1 className="text-2xl font-bold mb-4">🧠 AI Market Insights</h1>
+    <div style={{
+      minHeight: '100vh',
+      backgroundColor: '#0f172a',
+      color: 'white',
+      padding: '1.5rem',
+      fontFamily: 'sans-serif',
+      overflowX: 'hidden'
+    }}>
+      <h1 style={{ fontSize: '1.8rem', textAlign: 'center', marginBottom: '1.5rem' }}>
+        🧠 AI Market Insights
+      </h1>
 
-      <div className="flex gap-4 mb-6 flex-wrap">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
         <button
           onClick={() => handleGenerateInsights('gpt-3.5-turbo')}
-          className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded text-sm"
+          style={{
+            backgroundColor: '#2563eb',
+            padding: '0.5rem 1.25rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            border: 'none',
+            color: 'white'
+          }}
           disabled={loading}
         >
           Generate Insight - gpt-3.5-turbo
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4-1106-preview')}
-          className="bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded text-sm"
+          style={{
+            backgroundColor: '#7c3aed',
+            padding: '0.5rem 1.25rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            border: 'none',
+            color: 'white'
+          }}
           disabled={loading}
         >
           Generate Insight - gpt-4o-mini
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4o')}
-          className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-sm"
+          style={{
+            backgroundColor: '#059669',
+            padding: '0.5rem 1.25rem',
+            borderRadius: '0.375rem',
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            border: 'none',
+            color: 'white'
+          }}
           disabled={loading}
         >
           Generate Insight - gpt-4o
@@ -59,12 +93,24 @@ function Insights() {
       </div>
 
       {selectedModel && (
-        <p className="mb-2 text-gray-400">Answer: {selectedModel}</p>
+        <p style={{ textAlign: 'center', marginBottom: '1rem', color: '#cbd5e1' }}>
+          Answer using: <strong>{selectedModel}</strong>
+        </p>
       )}
 
       {insight && (
-        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner max-h-[600px] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed text-gray-200">
-          {insight}
+        <div style={{
+          backgroundColor: '#1e293b',
+          padding: '1rem',
+          borderRadius: '0.5rem',
+          maxHeight: '600px',
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          lineHeight: '1.6'
+        }}>
+          <ReactMarkdown>{insight}</ReactMarkdown>
         </div>
       )}
     </div>
