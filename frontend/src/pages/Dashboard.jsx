@@ -1,5 +1,7 @@
+import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import { getMarketData } from '../services/api';
+
 
 const Dashboard = () => {
   const [coins, setCoins] = useState([]);
