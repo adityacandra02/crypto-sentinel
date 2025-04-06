@@ -17,24 +17,21 @@ exports.handler = async function (event) {
       })
       .join("\n");
 
-    const prompt = `You are a professional crypto market analyst.
+      const prompt = `You are a professional crypto market analyst.
 
-Analyze the following TOP 25 coin data, considering:
-- Current market values (price, market cap, % change)
-- Overall market sentiment (especially in the US)
-- Recent major news headlines from top crypto sources like CoinDesk, CoinTelegraph, Decrypt
-
-Group the coins into three sections:
-1. HOLD – Strong long-term potential
-2. SELL – Currently risky or likely to drop
-3. WATCH – Worth monitoring due to volatility or upcoming events
-
-For each section, list coins in bullet points with short reasoning.
-
-COIN DATA:
-${topCoins}
-
-Write clearly and concisely. Use bullet formatting and section titles.`;
+      Analyze the following TOP 25 coin data, excluding stablecoins (e.g., USDT, USDC, DAI, BUSD), and considering:
+      - Current market values (price, market cap, % change)
+      - Overall market sentiment (especially in the US)
+      - Recent major news headlines from top crypto sources like CoinDesk, CoinTelegraph, Decrypt
+      
+      Group the remaining assets into three sections: HOLD, SELL, WATCH.
+      For each coin listed, explain briefly why it belongs in that category.
+      
+      COIN DATA:
+      ${topCoins}
+      
+      Only include meaningful insights. Write in clear sections: HOLD, SELL, WATCH.`;
+      
 
     const completion = await openai.chat.completions.create({
       model,
@@ -48,7 +45,7 @@ Write clearly and concisely. Use bullet formatting and section titles.`;
           content: prompt
         }
       ],
-      temperature: 0.7
+      temperature: 0.2
     });
 
     const insight = completion?.choices?.[0]?.message?.content?.trim();
