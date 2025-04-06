@@ -1,4 +1,3 @@
-// frontend/src/pages/Insights.jsx
 import React, { useState, useEffect } from 'react';
 import { getMarketData } from '../services/api';
 
@@ -32,7 +31,7 @@ function Insights() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6 overflow-x-hidden">
       <h1 className="text-2xl font-bold mb-4">🧠 AI Market Insights</h1>
 
       <div className="flex gap-4 mb-6 flex-wrap">
@@ -64,10 +63,8 @@ function Insights() {
       )}
 
       {insight && (
-        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner">
-          <pre className="whitespace-pre-wrap leading-relaxed text-gray-200">
-            {insight}
-          </pre>
+        <div className="bg-gray-800 p-4 mt-4 rounded shadow-inner max-h-[600px] overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed text-gray-200">
+          {insight}
         </div>
       )}
     </div>
