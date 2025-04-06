@@ -31,6 +31,8 @@ Top Coins:
 ${topCoins}
 `;
 
+    const model = 'gpt-4-turbo'; // ✅ or use 'gpt-3.5-turbo' for free
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -38,7 +40,7 @@ ${topCoins}
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo', // ✅ works for all OpenAI API users
+        model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7
       })
