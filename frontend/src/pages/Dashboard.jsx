@@ -5,6 +5,9 @@ const Dashboard = () => {
   const [coins, setCoins] = useState([]);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState('desc');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [insight, setInsight] = useState('');
+  const [loadingInsight, setLoadingInsight] = useState(false);
 
   useEffect(() => {
     getMarketData().then((data) => {
@@ -46,6 +49,25 @@ const Dashboard = () => {
     return `$ ${number.toFixed(2)}`;
   };
 
+  const generateInsights = async () => {
+    setLoadingInsight(true);
+    setInsight('');
+    try {
+      const res = await fetch('/.netlify/functions/analyzeWithLLM', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coins })
+      });
+      const data = await res.json();
+      setInsight(data.insight || 'No insight generated.');
+    } catch (err) {
+      setInsight('⚠️ Error generating insight.');
+      console.error(err);
+    } finally {
+      setLoadingInsight(false);
+    }
+  };
+
   return (
     <div style={{
       backgroundColor: '#111827',
@@ -56,68 +78,119 @@ const Dashboard = () => {
     }}>
       <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>🚀 Crypto Market Overview</h1>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#1F2937', textAlign: 'left' }}>
-            <th style={{ padding: '12px' }}>Rank</th>
-            <th style={{ padding: '12px' }}>Name</th>
-            <th style={{ padding: '12px' }}>Price (USD)</th>
-            <th onClick={() => handleSort('market_cap')} style={{ padding: '12px', cursor: 'pointer' }}>
-              Market Cap{renderArrow('market_cap')}
-            </th>
-            <th onClick={() => handleSort('volume')} style={{ padding: '12px', cursor: 'pointer' }}>
-              24h Volume{renderArrow('volume')}
-            </th>
-            <th onClick={() => handleSort('percent_change_1d')} style={{ padding: '12px', cursor: 'pointer' }}>
-              1d Change %{renderArrow('percent_change_1d')}
-            </th>
-            <th onClick={() => handleSort('percent_change_7d')} style={{ padding: '12px', cursor: 'pointer' }}>
-              7d Change %{renderArrow('percent_change_7d')}
-            </th>
-            <th onClick={() => handleSort('percent_change_30d')} style={{ padding: '12px', cursor: 'pointer' }}>
-              30d Change %{renderArrow('percent_change_30d')}
-            </th>
-            <th onClick={() => handleSort('percent_change_90d')} style={{ padding: '12px', cursor: 'pointer' }}>
-              90d Change %{renderArrow('percent_change_90d')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {sortedCoins.map((coin) => (
-            <tr key={coin.id} style={{ borderBottom: '1px solid #374151' }}>
-              <td style={{ padding: '10px' }}>{coin.rank}</td>
-              <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
-              <td style={{ padding: '10px' }}>${coin.price.toFixed(2)}</td>
-              <td style={{ padding: '10px' }}>{formatCompactUSD(coin.market_cap)}</td>
-              <td style={{ padding: '10px' }}>{formatCompactUSD(coin.volume)}</td>
-              <td style={{
-                padding: '10px',
-                color: coin.percent_change_1d > 0 ? '#10B981' : '#EF4444'
-              }}>
-                {coin.percent_change_1d?.toFixed(2)}%
-              </td>
-              <td style={{
-                padding: '10px',
-                color: coin.percent_change_7d > 0 ? '#10B981' : '#EF4444'
-              }}>
-                {coin.percent_change_7d?.toFixed(2)}%
-              </td>
-              <td style={{
-                padding: '10px',
-                color: coin.percent_change_30d > 0 ? '#10B981' : '#EF4444'
-              }}>
-                {coin.percent_change_30d?.toFixed(2)}%
-              </td>
-              <td style={{
-                padding: '10px',
-                color: coin.percent_change_90d > 0 ? '#10B981' : '#EF4444'
-              }}>
-                {coin.percent_change_90d?.toFixed(2)}%
-              </td>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: activeTab === 'dashboard' ? '#2563EB' : '#374151',
+            color: '#F9FAFB',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          Dashboard
+        </button>
+        <button
+          onClick={() => setActiveTab('insights')}
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: activeTab === 'insights' ? '#2563EB' : '#374151',
+            color: '#F9FAFB',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          Insights
+        </button>
+      </div>
+
+      {activeTab === 'dashboard' ? (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#1F2937', textAlign: 'left' }}>
+              <th style={{ padding: '12px' }}>Rank</th>
+              <th style={{ padding: '12px' }}>Name</th>
+              <th style={{ padding: '12px' }}>Price (USD)</th>
+              <th onClick={() => handleSort('market_cap')} style={{ padding: '12px', cursor: 'pointer' }}>
+                Market Cap{renderArrow('market_cap')}
+              </th>
+              <th onClick={() => handleSort('volume')} style={{ padding: '12px', cursor: 'pointer' }}>
+                24h Volume{renderArrow('volume')}
+              </th>
+              <th onClick={() => handleSort('percent_change_1d')} style={{ padding: '12px', cursor: 'pointer' }}>
+                1d Change %{renderArrow('percent_change_1d')}
+              </th>
+              <th onClick={() => handleSort('percent_change_7d')} style={{ padding: '12px', cursor: 'pointer' }}>
+                7d Change %{renderArrow('percent_change_7d')}
+              </th>
+              <th onClick={() => handleSort('percent_change_30d')} style={{ padding: '12px', cursor: 'pointer' }}>
+                30d Change %{renderArrow('percent_change_30d')}
+              </th>
+              <th onClick={() => handleSort('percent_change_90d')} style={{ padding: '12px', cursor: 'pointer' }}>
+                90d Change %{renderArrow('percent_change_90d')}
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {sortedCoins.map((coin) => (
+              <tr key={coin.id} style={{ borderBottom: '1px solid #374151' }}>
+                <td style={{ padding: '10px' }}>{coin.rank}</td>
+                <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
+                <td style={{ padding: '10px' }}>${coin.price.toFixed(2)}</td>
+                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.market_cap)}</td>
+                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.volume)}</td>
+                <td style={{
+                  padding: '10px',
+                  color: coin.percent_change_1d > 0 ? '#10B981' : '#EF4444'
+                }}>
+                  {coin.percent_change_1d?.toFixed(2)}%
+                </td>
+                <td style={{
+                  padding: '10px',
+                  color: coin.percent_change_7d > 0 ? '#10B981' : '#EF4444'
+                }}>
+                  {coin.percent_change_7d?.toFixed(2)}%
+                </td>
+                <td style={{
+                  padding: '10px',
+                  color: coin.percent_change_30d > 0 ? '#10B981' : '#EF4444'
+                }}>
+                  {coin.percent_change_30d?.toFixed(2)}%
+                </td>
+                <td style={{
+                  padding: '10px',
+                  color: coin.percent_change_90d > 0 ? '#10B981' : '#EF4444'
+                }}>
+                  {coin.percent_change_90d?.toFixed(2)}%
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <div style={{ padding: '1rem', backgroundColor: '#1F2937', borderRadius: '1rem' }}>
+          <button
+            onClick={generateInsights}
+            style={{
+              marginBottom: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: '#10B981',
+              border: 'none',
+              color: '#fff',
+              borderRadius: '0.5rem',
+              cursor: 'pointer'
+            }}
+          >
+            {loadingInsight ? 'Analyzing...' : 'Generate Insights'}
+          </button>
+          <div style={{ whiteSpace: 'pre-line', fontSize: '1rem', lineHeight: '1.6' }}>
+            {loadingInsight ? '⏳ Thinking...' : insight}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
