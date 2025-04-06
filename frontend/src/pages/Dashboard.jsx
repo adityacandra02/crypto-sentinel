@@ -47,56 +47,66 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="bg-dark text-light min-vh-100 py-5 px-4">
-      <h1 className="text-center mb-4">🚀 Crypto Market Overview</h1>
+    <div style={{
+      backgroundColor: '#0D1117',
+      color: '#E6EDF3',
+      minHeight: '100vh',
+      padding: '2rem',
+      fontFamily: 'Segoe UI, sans-serif'
+    }}>
+      <h1 style={{
+        fontSize: '2rem',
+        marginBottom: '2rem',
+        textAlign: 'center',
+        color: '#58A6FF'
+      }}>
+        📈 Crypto Market Dashboard
+      </h1>
 
-      <div className="table-responsive">
-        <table className="table table-dark table-hover table-bordered table-sm align-middle">
-          <thead className="table-light text-dark">
-            <tr>
-              <th>Rank</th>
-              <th>Name</th>
-              <th>Price (USD)</th>
-              <th onClick={() => handleSort('market_cap')} style={{ cursor: 'pointer' }}>
-                Market Cap {renderArrow('market_cap')}
-              </th>
-              <th onClick={() => handleSort('volume')} style={{ cursor: 'pointer' }}>
-                24h Volume {renderArrow('volume')}
-              </th>
-              <th onClick={() => handleSort('percent_change_1d')} style={{ cursor: 'pointer' }}>
-                1d % {renderArrow('percent_change_1d')}
-              </th>
-              <th onClick={() => handleSort('percent_change_7d')} style={{ cursor: 'pointer' }}>
-                7d % {renderArrow('percent_change_7d')}
-              </th>
-              <th onClick={() => handleSort('percent_change_30d')} style={{ cursor: 'pointer' }}>
-                30d % {renderArrow('percent_change_30d')}
-              </th>
-              <th onClick={() => handleSort('percent_change_90d')} style={{ cursor: 'pointer' }}>
-                90d % {renderArrow('percent_change_90d')}
-              </th>
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.95rem' }}>
+          <thead>
+            <tr style={{ backgroundColor: '#161B22' }}>
+              {['Rank', 'Name', 'Price (USD)'].map(col => (
+                <th key={col} style={{ padding: '12px', borderBottom: '1px solid #30363D' }}>{col}</th>
+              ))}
+              {[
+                { field: 'market_cap', label: 'Market Cap' },
+                { field: 'volume', label: '24h Volume' },
+                { field: 'percent_change_1d', label: '1d Change %' },
+                { field: 'percent_change_7d', label: '7d Change %' },
+                { field: 'percent_change_30d', label: '30d Change %' },
+                { field: 'percent_change_90d', label: '90d Change %' },
+              ].map(({ field, label }) => (
+                <th
+                  key={field}
+                  onClick={() => handleSort(field)}
+                  style={{ padding: '12px', cursor: 'pointer', borderBottom: '1px solid #30363D' }}
+                >
+                  {label}{renderArrow(field)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {sortedCoins.map((coin) => (
-              <tr key={coin.id}>
-                <td>{coin.rank}</td>
-                <td>{coin.name} ({coin.symbol})</td>
-                <td>${coin.price.toFixed(2)}</td>
-                <td>{formatCompactUSD(coin.market_cap)}</td>
-                <td>{formatCompactUSD(coin.volume)}</td>
-                <td className={coin.percent_change_1d >= 0 ? 'text-success' : 'text-danger'}>
-                  {coin.percent_change_1d?.toFixed(2)}%
-                </td>
-                <td className={coin.percent_change_7d >= 0 ? 'text-success' : 'text-danger'}>
-                  {coin.percent_change_7d?.toFixed(2)}%
-                </td>
-                <td className={coin.percent_change_30d >= 0 ? 'text-success' : 'text-danger'}>
-                  {coin.percent_change_30d?.toFixed(2)}%
-                </td>
-                <td className={coin.percent_change_90d >= 0 ? 'text-success' : 'text-danger'}>
-                  {coin.percent_change_90d?.toFixed(2)}%
-                </td>
+              <tr key={coin.id} style={{ borderBottom: '1px solid #30363D' }}>
+                <td style={{ padding: '10px' }}>{coin.rank}</td>
+                <td style={{ padding: '10px' }}>{coin.name} ({coin.symbol})</td>
+                <td style={{ padding: '10px' }}>${coin.price.toFixed(2)}</td>
+                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.market_cap)}</td>
+                <td style={{ padding: '10px' }}>{formatCompactUSD(coin.volume)}</td>
+                {['percent_change_1d', 'percent_change_7d', 'percent_change_30d', 'percent_change_90d'].map((key) => (
+                  <td
+                    key={key}
+                    style={{
+                      padding: '10px',
+                      color: coin[key] >= 0 ? '#3FB950' : '#F85149'
+                    }}
+                  >
+                    {coin[key]?.toFixed(2)}%
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
