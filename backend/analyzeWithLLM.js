@@ -1,4 +1,3 @@
-// backend/analyzeWithLLM.js
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
@@ -11,7 +10,7 @@ exports.handler = async function (event, context) {
     const selectedModel = model || 'gpt-3.5-turbo';
 
     const topCoins = coins
-      .slice(0, 25) // now analyzing only top 25
+      .slice(0, 25)
       .map((coin, i) => {
         return `${i + 1}. ${coin.name} (${coin.symbol}) - Price: $${coin.price.toFixed(2)}, Market Cap: $${(
           coin.market_cap / 1e9
@@ -21,11 +20,19 @@ exports.handler = async function (event, context) {
       })
       .join('\n');
 
-    const prompt = `You are a crypto market analyst. Based on the following top 25 coin data, provide long-term investment insights. Suggest coins to hold, and which to be cautious of:
+    const prompt = `You are a professional crypto market analyst.
 
+Analyze the following TOP 25 coin data, considering:
+- Current market values (price, market cap, % change)
+- Overall market sentiment (especially in the US)
+- Recent major news headlines from top crypto sources like CoinDesk, CoinTelegraph, Decrypt
+
+For each section (HOLD, SELL, WATCH), group coins accordingly and explain why.
+
+COIN DATA:
 ${topCoins}
 
-Be concise and explain your reasoning.`;
+Only include meaningful insights. Write in clear sections: HOLD, SELL, WATCH.`;
 
     const response = await openai.chat.completions.create({
       model: selectedModel,
