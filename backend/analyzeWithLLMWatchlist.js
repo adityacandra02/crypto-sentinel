@@ -15,38 +15,42 @@ exports.handler = async function (event) {
     const newsResponse = await fetch(`${process.env.URL}/.netlify/functions/fetchNewsSentiment`);
     const newsData = await newsResponse.json();
 
+    // ✅ Defensive logging
+    console.log('[News Data]', JSON.stringify(newsData, null, 2));
+
     if (!newsData || !Array.isArray(newsData.sentiments)) {
-      throw new Error('Sentiment data is invalid or missing');
+      console.warn('[LLM Watchlist WARNING] Sentiment format unexpected, using fallback');
     }
+
+    const sentimentLines = Array.isArray(newsData.sentiments)
+      ? newsData.sentiments.map(item => `- ${item.coin}: ${item.summary}`).join('\n')
+      : 'No sentiment data available.';
 
     const prompt = `
 You are a professional crypto analyst.
 
-Analyze the **CryptoPanic news sentiment** for the following watchlist coins and classify them into these three sections:
-- ✅ HOLD: Strong news or ongoing value drivers, best to keep.
-- ❌ SELL: Negative or uncertain outlook, recommend selling.
-- 👀 WATCH: News is emerging or uncertain, monitor for now.
+Analyze **news sentiment only** for the following coins.
+Do NOT include raw market data in the output.
 
-Only use sentiment-driven reasoning. **Do not repeat raw price or market cap data**. Focus instead on:
-- Recurring topics in the news
-- Positive/negative tone
-- Relevance of the news to the coin's future outlook
+Classify coins into:
+- ✅ HOLD
+- ❌ SELL
+- 👀 WATCH
 
-Present the result in markdown with **bullet points grouped by section**.
-Use this structure:
+Base your decision on the summarized CryptoPanic headlines:
+${sentimentLines}
+
+Respond in markdown using this format:
 
 ## HOLD
-- **CoinName (Symbol)**  
-  - *Rationale based on sentiment*
+- **Coin (Symbol)**  
+  - *Brief reasoning based on sentiment*
 
 ## SELL
 ...
 
 ## WATCH
 ...
-
-Coin Sentiment Summary:
-${newsData.sentiments.map(item => `- ${item.coin}: ${item.summary}`).join('\n')}
 `;
 
     const response = await openai.chat.completions.create({
@@ -54,7 +58,7 @@ ${newsData.sentiments.map(item => `- ${item.coin}: ${item.summary}`).join('\n')}
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const aiInsight = response.choices[0]?.message?.content || '';
+    const aiInsight = response.choices[0]?.message?.content || 'No insight generated.';
     return {
       statusCode: 200,
       body: JSON.stringify({ insight: aiInsight }),

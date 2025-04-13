@@ -1,58 +1,61 @@
 const fetch = require('node-fetch');
 
-const CRYPTOPANIC_API_KEY = process.env.CRYPTOPANIC_API_KEY;
-
-const watchlistKeywords = [
-  'Ondo', 'Sui', 'Ethena', 'Algorand', 'Worldcoin', 'Jito',
-  'Bittensor', 'Renzo', 'Chainlink', 'Internet Computer',
-  'Altlayer', 'Artificial Superintelligence Alliance'
+const watchlistCoins = [
+  { name: 'Ondo', symbol: 'ONDO' },
+  { name: 'Sui', symbol: 'SUI' },
+  { name: 'Ethena', symbol: 'ENA' },
+  { name: 'Algorand', symbol: 'ALGO' },
+  { name: 'Worldcoin', symbol: 'WLD' },
+  { name: 'Jito', symbol: 'JTO' },
+  { name: 'Bittensor', symbol: 'TAO' },
+  { name: 'Renzo', symbol: 'REZ' },
+  { name: 'Chainlink', symbol: 'LINK' },
+  { name: 'Internet Computer', symbol: 'ICP' },
+  { name: 'Altlayer', symbol: 'ALT' },
+  { name: 'Artificial Superintelligence Alliance', symbol: 'FET' },
 ];
 
 exports.handler = async function () {
+  const API_KEY = process.env.CRYPTO_PANIC_API_KEY;
+
+  if (!API_KEY) {
+    console.error('[CryptoPanic ERROR] Missing API key');
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: 'Missing CryptoPanic API key' }),
+    };
+  }
+
+  const sentiments = [];
+
   try {
-    const results = {};
+    for (const coin of watchlistCoins) {
+      const url = `https://cryptopanic.com/api/v1/posts/?auth_token=${API_KEY}&currencies=${coin.symbol}&kind=news&public=true`;
 
-    for (const keyword of watchlistKeywords) {
-      const url = `https://cryptopanic.com/api/v1/posts/?auth_token=${CRYPTOPANIC_API_KEY}&currencies=${keyword}&kind=news&public=true`;
+      const response = await fetch(url);
+      const json = await response.json();
 
-      const res = await fetch(url);
-      const data = await res.json();
+      if (!json || !json.results) {
+        console.warn(`[CryptoPanic WARNING] No results for ${coin.symbol}`);
+        continue;
+      }
 
-      results[keyword] = {
-        sentiment_summary: {
-          positive: 0,
-          negative: 0,
-          neutral: 0
-        },
-        articles: []
-      };
-
-      data.results.forEach((article) => {
-        const sentiment = article.votes && article.votes.positive
-          ? 'positive'
-          : article.votes && article.votes.negative
-          ? 'negative'
-          : 'neutral';
-
-        results[keyword].sentiment_summary[sentiment] += 1;
-        results[keyword].articles.push({
-          title: article.title,
-          url: article.url,
-          published_at: article.published_at,
-          sentiment
-        });
+      const summaries = json.results.slice(0, 3).map(post => `• ${post.title}`).join('\n');
+      sentiments.push({
+        coin: coin.name,
+        summary: summaries || 'No significant news.',
       });
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify(results)
+      body: JSON.stringify({ sentiments }),
     };
   } catch (err) {
     console.error('[CryptoPanic ERROR]', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message })
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };
