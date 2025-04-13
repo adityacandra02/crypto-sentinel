@@ -15,36 +15,42 @@ exports.handler = async function (event) {
     const newsResponse = await fetch(`${process.env.URL}/.netlify/functions/fetchNewsSentiment`);
     const newsData = await newsResponse.json();
 
-    // ✅ Defensive logging
-    console.log('[News Data]', JSON.stringify(newsData, null, 2));
-
     if (!newsData || !Array.isArray(newsData.sentiments)) {
-      console.warn('[LLM Watchlist WARNING] Sentiment format unexpected, using fallback');
+      throw new Error('Sentiment data is invalid or missing');
     }
 
-    const sentimentLines = Array.isArray(newsData.sentiments)
-      ? newsData.sentiments.map(item => `- ${item.coin}: ${item.summary}`).join('\n')
-      : 'No sentiment data available.';
+    // Create a lookup for faster access
+    const sentimentMap = {};
+    newsData.sentiments.forEach(item => {
+      sentimentMap[item.coin.toUpperCase()] = item.summary;
+    });
+
+    // Merge coin list and sentiment
+    const sentimentLines = coins.map((coin, i) => {
+      const summary = sentimentMap[coin.symbol.toUpperCase()] || 'No recent news or sentiment available.';
+      return `- ${coin.name} (${coin.symbol}): ${summary}`;
+    }).join('\n');
 
     const prompt = `
 You are a professional crypto analyst.
 
-Analyze **news sentiment only** for the following coins.
-Do NOT include raw market data in the output.
+Analyze **only the news sentiment** for each of the following watchlist coins.
+Do NOT use or show market data.
 
-Classify coins into:
-- ✅ HOLD
-- ❌ SELL
-- 👀 WATCH
+Based on the recent news (if any), classify each coin into one of the following:
 
-Base your decision on the summarized CryptoPanic headlines:
+- ✅ HOLD — strong positive sentiment
+- ❌ SELL — negative or bearish signals
+- 👀 WATCH — neutral or mixed outlook, worth monitoring
+
+News Sentiment Summary:
 ${sentimentLines}
 
-Respond in markdown using this format:
+Respond in this markdown format:
 
 ## HOLD
 - **Coin (Symbol)**  
-  - *Brief reasoning based on sentiment*
+  - *Reasoning*
 
 ## SELL
 ...
