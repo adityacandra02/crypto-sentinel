@@ -5,6 +5,7 @@
     "node-fetch": "^2.7.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
     "openai": "^4.91.1",
     "react-markdown": "^10.1.0"
   }
