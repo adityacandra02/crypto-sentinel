@@ -26,14 +26,12 @@ exports.handler = async function (event) {
     const prompt = `
 You are a professional crypto market analyst.
 
-Evaluate the following WATCHLIST coin data and related news sentiment. Focus on:
-- Price, % change, market cap
-- News sentiment (from CoinTelegraph, CoinDesk, etc.)
-- Ignore stablecoins
+Evaluate the following WATCHLIST coins based on their recent sentiment from top crypto news headlines (summarized below). Your analysis should:
 
-Return 3 clear sections: HOLD, SELL, WATCH
-
-Format with markdown bullet points for clarity.
+- Focus only on news-driven insights and public sentiment (ignore raw numbers like price or market cap).
+- Classify each coin into HOLD, SELL, or WATCH categories.
+- Justify your classification with sentiment-based reasoning.
+- Be concise but informative, using markdown headers and bullet points.
 
 COIN MARKET DATA:
 ${coins.map((c, i) => {
