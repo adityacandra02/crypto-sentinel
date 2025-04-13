@@ -9,39 +9,44 @@ const openai = new OpenAI({
 exports.handler = async function (event) {
   try {
     const body = JSON.parse(event.body);
-    const coins = Array.isArray(body.coins) ? body.coins : [];
+    const coins = body.coins || [];
     const model = body.model || 'gpt-3.5-turbo';
-
-    if (!coins.length) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'No coins data provided.' }),
-      };
-    }
 
     const newsResponse = await fetch(`${process.env.URL}/.netlify/functions/fetchNewsSentiment`);
     const newsData = await newsResponse.json();
-    const sentiments = Array.isArray(newsData.sentiments) ? newsData.sentiments : [];
+
+    if (!newsData || !Array.isArray(newsData.sentiments)) {
+      throw new Error('Sentiment data is invalid or missing');
+    }
 
     const prompt = `
-You are a professional crypto market analyst.
+You are a professional crypto analyst.
 
-Evaluate the following WATCHLIST coins based on their recent sentiment from top crypto news headlines (summarized below). Your analysis should:
+Analyze the **CryptoPanic news sentiment** for the following watchlist coins and classify them into these three sections:
+- ✅ HOLD: Strong news or ongoing value drivers, best to keep.
+- ❌ SELL: Negative or uncertain outlook, recommend selling.
+- 👀 WATCH: News is emerging or uncertain, monitor for now.
 
-- Focus only on news-driven insights and public sentiment (ignore raw numbers like price or market cap).
-- Classify each coin into HOLD, SELL, or WATCH categories.
-- Justify your classification with sentiment-based reasoning.
-- Be concise but informative, using markdown headers and bullet points.
+Only use sentiment-driven reasoning. **Do not repeat raw price or market cap data**. Focus instead on:
+- Recurring topics in the news
+- Positive/negative tone
+- Relevance of the news to the coin's future outlook
 
-COIN MARKET DATA:
-${coins.map((c, i) => {
-  return `${i + 1}. ${c.name} (${c.symbol}) - Price: $${c.price?.toFixed(2)}, Market Cap: ${Math.round(c.market_cap)}, 1d: ${c.percent_change_1d?.toFixed(2)}%, 7d: ${c.percent_change_7d?.toFixed(2)}%`
-}).join('\n')}
+Present the result in markdown with **bullet points grouped by section**.
+Use this structure:
 
-COIN SENTIMENTS:
-${sentiments.map(s => `- ${s.coin}: ${s.summary}`).join('\n')}
+## HOLD
+- **CoinName (Symbol)**  
+  - *Rationale based on sentiment*
 
-Respond only with insights in markdown.
+## SELL
+...
+
+## WATCH
+...
+
+Coin Sentiment Summary:
+${newsData.sentiments.map(item => `- ${item.coin}: ${item.summary}`).join('\n')}
 `;
 
     const response = await openai.chat.completions.create({
@@ -49,13 +54,11 @@ Respond only with insights in markdown.
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const aiInsight = response.choices?.[0]?.message?.content || '';
-
+    const aiInsight = response.choices[0]?.message?.content || '';
     return {
       statusCode: 200,
       body: JSON.stringify({ insight: aiInsight }),
     };
-
   } catch (err) {
     console.error('[LLM Watchlist ERROR]', err);
     return {
