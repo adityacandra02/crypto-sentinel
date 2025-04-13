@@ -1,73 +1,65 @@
+// backend/storeNewsToSupabase.js
 const fetch = require('node-fetch');
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 
-// Schedule to run hourly
-exports.handler = async function (event, context) {
-  console.log(`[CRON] Fetching news at ${new Date().toISOString()}`);
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Supabase credentials (URL or KEY) are missing. Check environment variables.');
+}
 
-  const watchlist = [
-    'ONDO', 'SUI', 'ENA', 'ALGO', 'WLD', 'JTO',
-    'TAO', 'REZ', 'LINK', 'ICP', 'ALT', 'FET'
-  ];
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const token = process.env.CRYPTOPANIC_API_KEY;
-  const allNews = [];
+const watchlist = [
+  'ONDO', 'SUI', 'ENA', 'ALGO', 'WLD', 'JTO',
+  'TAO', 'REZ', 'LINK', 'ICP', 'ALT', 'FET'
+];
 
-  for (const symbol of watchlist) {
-    try {
-      const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${token}&currencies=${symbol}&kind=news&public=true`);
+exports.handler = async () => {
+  try {
+    for (const symbol of watchlist) {
+      const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${process.env.CRYPTOPANIC_API_KEY}&currencies=${symbol}&kind=news&public=true`);
       const json = await res.json();
-      const newsItems = json.results || [];
 
-      for (const item of newsItems) {
-        const newsId = item.id;
-        const title = item.title;
-        const published_at = item.published_at;
-        const created_at = item.created_at;
+      if (!json.results || !Array.isArray(json.results)) {
+        console.warn(`[WARNING] Invalid result format for symbol: ${symbol}`);
+        continue;
+      }
 
-        allNews.push({
-          cryptopanic_news_id: newsId,
+      for (const item of json.results) {
+        const cryptopanic_news_id = item.id;
+        const existing = await supabase
+          .from('coin_news')
+          .select('id')
+          .eq('cryptopanic_news_id', cryptopanic_news_id)
+          .maybeSingle();
+
+        if (existing.data) {
+          continue; // Skip if already exists
+        }
+
+        const created_at = item.published_at || item.created_at;
+        const title = item.title || 'Untitled';
+
+        await supabase.from('coin_news').insert([{
+          cryptopanic_news_id,
           coin: symbol,
           title,
-          published_at,
-          created_at
-        });
-      }
-    } catch (err) {
-      console.error(`[ERROR] Failed fetching for ${symbol}:`, err.message);
-    }
-
-    await new Promise((r) => setTimeout(r, 300)); // ~3 requests/sec
-  }
-
-  // Prevent duplicates based on cryptopanic_news_id
-  for (const news of allNews) {
-    const { data, error } = await supabase
-      .from('coin_news')
-      .select('id')
-      .eq('cryptopanic_news_id', news.cryptopanic_news_id)
-      .maybeSingle();
-
-    if (!data && !error) {
-      const { error: insertError } = await supabase
-        .from('coin_news')
-        .insert([news]);
-
-      if (insertError) {
-        console.error('[Insert Error]', insertError.message);
+          created_at,
+        }]);
       }
     }
-  }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ message: 'Hourly CryptoPanic news updated successfully.' }),
-  };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'News stored to Supabase successfully.' }),
+    };
+  } catch (err) {
+    console.error('[storeNewsToSupabase ERROR]', err);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: err.message || 'Unknown error' }),
+    };
+  }
 };
-
-exports.handler.schedule = '@hourly';
