@@ -2,3 +2,7 @@
   base = "frontend"
   publish = "build"
   functions = "../backend"
+
+[[functions]]
+  schedule = "0 * * * *" # every hour
+  path = "storeNewsToSupabase"
