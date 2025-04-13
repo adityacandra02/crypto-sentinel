@@ -4,6 +4,7 @@ import Insights from './pages/Insights';
 import Watchlist from './pages/Watchlist';
 import WatchlistInsight from './pages/WatchlistInsight'; // ⬅️ Add this
 
+
 function App() {
   return (
     <Router>

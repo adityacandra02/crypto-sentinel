@@ -1,5 +1,5 @@
-// frontend/src/pages/WatchlistInsight.jsx
 import React, { useState, useEffect } from 'react';
+import { getWatchlistData } from '../services/api';
 
 function WatchlistInsight() {
   const [coins, setCoins] = useState([]);
@@ -8,10 +8,7 @@ function WatchlistInsight() {
   const [selectedModel, setSelectedModel] = useState('');
 
   useEffect(() => {
-    fetch('/.netlify/functions/fetchWatchlistData')
-      .then(res => res.json())
-      .then(setCoins)
-      .catch(() => setCoins([]));
+    getWatchlistData().then(setCoins);
   }, []);
 
   const handleGenerateInsights = async (model) => {
@@ -22,7 +19,7 @@ function WatchlistInsight() {
       const response = await fetch('/.netlify/functions/analyzeWithLLMWatchlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filteredCoins: coins, model }),
+        body: JSON.stringify({ coins, model }),
       });
       const data = await response.json();
       setInsight(data.insight || 'No insight received.');
@@ -34,54 +31,53 @@ function WatchlistInsight() {
   };
 
   return (
-    <div style={{
-      backgroundColor: '#111827',
-      color: '#F9FAFB',
-      minHeight: '100vh',
-      padding: '2rem',
-      fontFamily: 'sans-serif'
-    }}>
-      <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>📌 Watchlist Insights</h1>
+    <div style={{ minHeight: '100vh', backgroundColor: '#0f172a', color: 'white', padding: '1.5rem', fontFamily: 'sans-serif' }}>
+      <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '1.5rem' }}>🧠 AI Watchlist Insights</h1>
 
-      <div style={{ marginBottom: '1rem', display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
         <button
           onClick={() => handleGenerateInsights('gpt-3.5-turbo')}
           disabled={loading}
-          style={{ backgroundColor: '#2563eb', color: 'white', padding: '10px', borderRadius: '5px' }}
+          style={{ backgroundColor: '#2563eb', padding: '0.5rem 1rem', borderRadius: '6px', fontSize: '0.9rem' }}
         >
-          Generate Insight - gpt-3.5-turbo
+          {loading && selectedModel === 'gpt-3.5-turbo' ? 'Analyzing...' : 'Generate Insight - gpt-3.5-turbo'}
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4-1106-preview')}
           disabled={loading}
-          style={{ backgroundColor: '#9333ea', color: 'white', padding: '10px', borderRadius: '5px' }}
+          style={{ backgroundColor: '#7c3aed', padding: '0.5rem 1rem', borderRadius: '6px', fontSize: '0.9rem' }}
         >
-          Generate Insight - gpt-4o-mini
+          {loading && selectedModel === 'gpt-4-1106-preview' ? 'Analyzing...' : 'Generate Insight - gpt-4o-mini'}
         </button>
         <button
           onClick={() => handleGenerateInsights('gpt-4o')}
           disabled={loading}
-          style={{ backgroundColor: '#10b981', color: 'white', padding: '10px', borderRadius: '5px' }}
+          style={{ backgroundColor: '#059669', padding: '0.5rem 1rem', borderRadius: '6px', fontSize: '0.9rem' }}
         >
-          Generate Insight - gpt-4o
+          {loading && selectedModel === 'gpt-4o' ? 'Analyzing...' : 'Generate Insight - gpt-4o'}
         </button>
       </div>
 
       {selectedModel && (
-        <p style={{ marginBottom: '1rem', color: '#9CA3AF' }}>
-          Answer generated using: <strong>{selectedModel}</strong>
+        <p style={{ marginBottom: '1rem', color: '#9ca3af' }}>
+          Answer model: <strong>{selectedModel}</strong>
         </p>
       )}
 
       {insight && (
-        <div style={{
-          backgroundColor: '#1F2937',
-          padding: '1.25rem',
-          borderRadius: '8px',
-          whiteSpace: 'pre-wrap',
-          overflowY: 'auto',
-          maxHeight: '600px'
-        }}>
+        <div
+          style={{
+            backgroundColor: '#1e293b',
+            padding: '1rem',
+            borderRadius: '8px',
+            maxHeight: '600px',
+            overflowY: 'auto',
+            whiteSpace: 'pre-wrap',
+            overflowX: 'hidden',
+            lineHeight: '1.5',
+            color: '#d1d5db'
+          }}
+        >
           {insight}
         </div>
       )}
