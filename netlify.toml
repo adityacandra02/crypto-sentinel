@@ -6,3 +6,10 @@
 [[functions]]
   schedule = "0 * * * *" # every hour
   path = "storeNewsToSupabase"
+
+[[scheduled.functions]]
+  name = "summarizeNewsDaily"
+  schedule = "0 23 * * *" # Every day at 23:00 UTC
+
+[functions."summarizeDailyNews"]
+  schedule = "0 2 * * *" # runs daily at 2AM UTC
