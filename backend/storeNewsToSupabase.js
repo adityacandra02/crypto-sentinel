@@ -6,7 +6,7 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Supabase credentials (URL or KEY) are missing. Check environment variables.');
+  throw new Error('Supabase credentials (URL or KEY) are missing.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -20,6 +20,12 @@ exports.handler = async () => {
   try {
     for (const symbol of watchlist) {
       const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${process.env.CRYPTOPANIC_API_KEY}&currencies=${symbol}&kind=news&public=true`);
+
+      if (!res.ok) {
+        console.error(`[CryptoPanic Fetch Error for ${symbol}]`, await res.text());
+        continue;
+      }
+
       const json = await res.json();
 
       if (!json.results || !Array.isArray(json.results)) {
@@ -39,16 +45,23 @@ exports.handler = async () => {
           continue; // Skip if already exists
         }
 
-        const created_at = item.published_at || item.created_at;
+        const created_at = new Date(item.published_at || item.created_at).toISOString();
         const title = item.title || 'Untitled';
 
-        await supabase.from('coin_news').insert([{
+        const { error } = await supabase.from('coin_news').insert([{
           cryptopanic_news_id,
           coin: symbol,
           title,
           created_at,
         }]);
+
+        if (error) {
+          console.error(`[INSERT ERROR]`, error);
+        }
       }
+
+      // Respect API rate limits (300ms between requests)
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     return {
