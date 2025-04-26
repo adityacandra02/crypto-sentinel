@@ -4,9 +4,14 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
+const cryptoPanicKey = process.env.CRYPTOPANIC_API_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Supabase credentials (URL or KEY) are missing.');
+  throw new Error('Supabase credentials (URL or KEY) are missing. Check environment variables.');
+}
+
+if (!cryptoPanicKey) {
+  throw new Error('CryptoPanic API Key missing.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -16,52 +21,53 @@ const watchlist = [
   'TAO', 'REZ', 'LINK', 'ICP', 'ALT', 'FET'
 ];
 
-exports.handler = async () => {
+exports.handler = async function () {
   try {
     for (const symbol of watchlist) {
-      const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${process.env.CRYPTOPANIC_API_KEY}&currencies=${symbol}&kind=news&public=true`);
-
-      if (!res.ok) {
-        console.error(`[CryptoPanic Fetch Error for ${symbol}]`, await res.text());
-        continue;
-      }
-
+      const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${cryptoPanicKey}&currencies=${symbol}&kind=news&public=true`);
       const json = await res.json();
 
       if (!json.results || !Array.isArray(json.results)) {
-        console.warn(`[WARNING] Invalid result format for symbol: ${symbol}`);
+        console.warn(`[WARNING] Invalid or empty CryptoPanic response for ${symbol}`);
         continue;
       }
 
       for (const item of json.results) {
         const cryptopanic_news_id = item.id;
-        const existing = await supabase
+        const created_at = item.published_at || item.created_at;
+        const title = item.title || 'Untitled';
+
+        // Check if this news already exists
+        const { data: existing, error: checkError } = await supabase
           .from('coin_news')
           .select('id')
           .eq('cryptopanic_news_id', cryptopanic_news_id)
           .maybeSingle();
 
-        if (existing.data) {
-          continue; // Skip if already exists
+        if (checkError) {
+          console.error(`[Supabase Select Error]`, checkError);
+          continue;
         }
 
-        const created_at = new Date(item.published_at || item.created_at).toISOString();
-        const title = item.title || 'Untitled';
+        if (existing) {
+          // News already exists, skip
+          continue;
+        }
 
-        const { error } = await supabase.from('coin_news').insert([{
-          cryptopanic_news_id,
-          coin: symbol,
-          title,
-          created_at,
-        }]);
+        // Insert into Supabase
+        const { error: insertError } = await supabase
+          .from('coin_news')
+          .insert([{
+            cryptopanic_news_id,
+            coin: symbol,
+            title,
+            created_at,
+          }]);
 
-        if (error) {
-          console.error(`[INSERT ERROR]`, error);
+        if (insertError) {
+          console.error(`[Supabase Insert Error]`, insertError);
         }
       }
-
-      // Respect API rate limits (300ms between requests)
-      await new Promise(resolve => setTimeout(resolve, 300));
     }
 
     return {
