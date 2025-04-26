@@ -3,9 +3,7 @@ import React, { useEffect, useState } from 'react';
 function Summaries() {
   const [summaries, setSummaries] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [storingNews, setStoringNews] = useState(false);
-  const [error, setError] = useState('');
+  const [summarizing, setSummarizing] = useState(false);
 
   useEffect(() => {
     fetchSummaries();
@@ -16,112 +14,94 @@ function Summaries() {
     try {
       const response = await fetch('/.netlify/functions/fetchSummaries');
       const data = await response.json();
-      setSummaries(data.summaries || []);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load summaries.');
+      setSummaries(data || []);
+    } catch (error) {
+      console.error('Error fetching summaries:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRegenerate = async () => {
-    setRegenerating(true);
+  const triggerSummarizeDaily = async () => {
+    setSummarizing(true);
     try {
-      const response = await fetch('/.netlify/functions/summarizeDailyNewsButton', {
+      const response = await fetch('/.netlify/functions/summarizeNewsDaily', {
         method: 'POST',
       });
       const data = await response.json();
-      alert(data.message || 'Summarization complete.');
-      fetchSummaries();
-    } catch (err) {
-      console.error(err);
-      alert('Failed to regenerate summaries.');
+      console.log('Summarize News Daily result:', data);
+      alert('Daily summarization triggered!');
+      fetchSummaries(); // Refresh after summarizing
+    } catch (error) {
+      console.error('Error triggering summarize daily:', error);
+      alert('Failed to summarize news.');
     } finally {
-      setRegenerating(false);
-    }
-  };
-
-  const handleStoreNews = async () => {
-    setStoringNews(true);
-    try {
-      const response = await fetch('/.netlify/functions/triggerStoreNews', {
-        method: 'POST',
-      });
-      const data = await response.json();
-      alert(data.message || 'News stored successfully.');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to store news.');
-    } finally {
-      setStoringNews(false);
+      setSummarizing(false);
     }
   };
 
   return (
     <div style={{
       backgroundColor: '#0f172a',
-      color: '#f9fafb',
+      color: 'white',
       minHeight: '100vh',
       padding: '2rem',
-      fontFamily: 'sans-serif',
+      fontFamily: 'sans-serif'
     }}>
-      <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>📊 Daily AI News Summaries</h1>
+      <h1 style={{ fontSize: '1.8rem', marginBottom: '1.5rem' }}>📰 Daily Crypto Summaries</h1>
 
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
         <button
-          onClick={handleStoreNews}
-          disabled={storingNews}
+          onClick={fetchSummaries}
           style={{
-            backgroundColor: '#10b981',
-            color: 'white',
+            backgroundColor: '#2563EB',
             padding: '0.5rem 1rem',
             borderRadius: '6px',
+            fontSize: '0.875rem',
+            color: 'white',
             border: 'none',
             cursor: 'pointer'
           }}
+          disabled={loading}
         >
-          {storingNews ? 'Storing news...' : '📰 Store News Now'}
+          {loading ? 'Refreshing...' : 'Refresh Summaries'}
         </button>
 
         <button
-          onClick={handleRegenerate}
-          disabled={regenerating}
+          onClick={triggerSummarizeDaily}
           style={{
-            backgroundColor: '#2563eb',
-            color: 'white',
+            backgroundColor: '#10B981',
             padding: '0.5rem 1rem',
             borderRadius: '6px',
+            fontSize: '0.875rem',
+            color: 'white',
             border: 'none',
             cursor: 'pointer'
           }}
+          disabled={summarizing}
         >
-          {regenerating ? 'Regenerating...' : '🔁 Regenerate Summaries'}
+          {summarizing ? 'Summarizing...' : 'Summarize News Daily'}
         </button>
       </div>
 
-      {loading ? (
-        <p>Loading summaries...</p>
-      ) : error ? (
-        <p>{error}</p>
-      ) : summaries.length === 0 ? (
-        <p>No summaries available.</p>
-      ) : (
-        <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-          {summaries.map((entry, idx) => (
-            <div key={idx} style={{
-              backgroundColor: '#1f2937',
+      <div style={{ marginTop: '2rem' }}>
+        {summaries.length === 0 ? (
+          <p>No summaries available.</p>
+        ) : (
+          summaries.map((item, index) => (
+            <div key={index} style={{
+              backgroundColor: '#1F2937',
               padding: '1rem',
-              borderRadius: '6px',
               marginBottom: '1rem',
-              lineHeight: '1.5',
+              borderRadius: '8px',
+              lineHeight: '1.6'
             }}>
-              <strong>{entry.coin}</strong> — <em>{entry.date}</em>
-              <p style={{ marginTop: '0.5rem', whiteSpace: 'pre-wrap' }}>{entry.summary}</p>
+              <h2 style={{ fontSize: '1.2rem', marginBottom: '0.5rem' }}>{item.coin_symbol} ({item.date})</h2>
+              <p>{item.summary}</p>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }

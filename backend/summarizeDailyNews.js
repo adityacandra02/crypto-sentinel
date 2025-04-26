@@ -12,10 +12,11 @@ exports.handler = async () => {
     // Step 1: Fetch today's news per coin
     const { data: allNews, error: fetchErr } = await supabase
       .from('coin_news')
-      .select('coin, title')
-      .eq('date', today);
+      .select('coin, title, created_at')
+      .gte('created_at', `${today}T00:00:00Z`)
+      .lte('created_at', `${today}T23:59:59Z`);
 
-    if (fetchErr || !allNews) throw new Error(fetchErr?.message || 'No news found');
+    if (fetchErr || !allNews || allNews.length === 0) throw new Error(fetchErr?.message || 'No news found today.');
 
     // Step 2: Group by coin
     const grouped = allNews.reduce((acc, { coin, title }) => {
@@ -27,10 +28,12 @@ exports.handler = async () => {
     // Step 3: Summarize each coin
     for (const [coin, titles] of Object.entries(grouped)) {
       const prompt = `Summarize the sentiment and key themes of the following crypto news titles for ${coin} (max 200 words):\n\n${titles.map(t => `- ${t}`).join('\n')}`;
+      
       const completion = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }]
       });
+      
       const summary = completion.choices[0]?.message?.content?.trim();
 
       // Step 4: Store summary in Supabase
@@ -45,13 +48,13 @@ exports.handler = async () => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Summaries updated.' })
+      body: JSON.stringify({ message: 'Summaries updated successfully.' })
     };
   } catch (err) {
     console.error('[Daily Summary ERROR]', err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to summarize news' })
+      body: JSON.stringify({ error: 'Failed to summarize news', details: err.message })
     };
   }
 };
