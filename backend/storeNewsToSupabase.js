@@ -6,12 +6,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const cryptoPanicKey = process.env.CRYPTOPANIC_API_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Supabase credentials (URL or KEY) are missing. Check environment variables.');
-}
-
-if (!cryptoPanicKey) {
-  throw new Error('CryptoPanic API Key missing.');
+if (!supabaseUrl || !supabaseKey || !cryptoPanicKey) {
+  throw new Error('Supabase or CryptoPanic credentials missing.');
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -21,14 +17,31 @@ const watchlist = [
   'TAO', 'REZ', 'LINK', 'ICP', 'ALT', 'FET'
 ];
 
-exports.handler = async function () {
+// Helper to wait
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+exports.handler = async () => {
+  const logs = []; // For returning to frontend
   try {
     for (const symbol of watchlist) {
-      const res = await fetch(`https://cryptopanic.com/api/v1/posts/?auth_token=${cryptoPanicKey}&currencies=${symbol}&kind=news&public=true`);
+      console.log(`Fetching for ${symbol}...`);
+      const url = `https://cryptopanic.com/api/v1/posts/?auth_token=${cryptoPanicKey}&currencies=${symbol}&kind=news&public=true`;
+
+      const res = await fetch(url);
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        console.error(`[CryptoPanic API ERROR for ${symbol}] Not JSON.`, text.slice(0, 200));
+        logs.push({ symbol, status: 'error', reason: 'Invalid CryptoPanic response' });
+        continue;
+      }
+
       const json = await res.json();
 
       if (!json.results || !Array.isArray(json.results)) {
-        console.warn(`[WARNING] Invalid or empty CryptoPanic response for ${symbol}`);
+        console.warn(`[CryptoPanic WARNING] Empty news for ${symbol}`);
+        logs.push({ symbol, status: 'warning', reason: 'Empty news' });
         continue;
       }
 
@@ -37,7 +50,6 @@ exports.handler = async function () {
         const created_at = item.published_at || item.created_at;
         const title = item.title || 'Untitled';
 
-        // Check if this news already exists
         const { data: existing, error: checkError } = await supabase
           .from('coin_news')
           .select('id')
@@ -45,34 +57,37 @@ exports.handler = async function () {
           .maybeSingle();
 
         if (checkError) {
-          console.error(`[Supabase Select Error]`, checkError);
+          console.error(`[Supabase SELECT error for ${symbol}]`, checkError);
+          logs.push({ symbol, title, status: 'db_check_error', reason: checkError.message });
           continue;
         }
 
         if (existing) {
-          // News already exists, skip
+          console.log(`[Skip] News already exists: ${cryptopanic_news_id}`);
+          logs.push({ symbol, title, status: 'skipped', reason: 'Already exists' });
           continue;
         }
 
-        // Insert into Supabase
         const { error: insertError } = await supabase
           .from('coin_news')
-          .insert([{
-            cryptopanic_news_id,
-            coin: symbol,
-            title,
-            created_at,
-          }]);
+          .insert([{ cryptopanic_news_id, coin: symbol, title, created_at }]);
 
         if (insertError) {
-          console.error(`[Supabase Insert Error]`, insertError);
+          console.error(`[Supabase INSERT error for ${symbol}]`, insertError);
+          logs.push({ symbol, title, status: 'db_insert_error', reason: insertError.message });
+        } else {
+          console.log(`[Inserted] ${symbol} - ${title}`);
+          logs.push({ symbol, title, status: 'inserted' });
         }
       }
+
+      // ✅ Slight delay to avoid API flood
+      await delay(300); // 300ms between each symbol
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'News stored to Supabase successfully.' }),
+      body: JSON.stringify({ message: 'Completed fetching news.', logs }),
     };
   } catch (err) {
     console.error('[storeNewsToSupabase ERROR]', err);
