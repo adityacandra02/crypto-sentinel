@@ -2,86 +2,78 @@
 const { createClient } = require('@supabase/supabase-js');
 const { OpenAI } = require('openai');
 
-// Initialize Supabase and OpenAI
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
+// Initialize Supabase client
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY; // Service Role Key (Admin)
 
+if (!supabaseUrl || !supabaseServiceKey) {
+  throw new Error('Supabase URL or Service Key is missing. Check your Netlify environment variables.');
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Initialize OpenAI client
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 exports.handler = async function () {
-  const today = new Date().toISOString().split('T')[0]; // e.g., '2025-04-26'
+  const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
 
   try {
-    // Step 1: Fetch today's news from coin_news table
+    // Step 1: Fetch today's news
     const { data: newsData, error: fetchError } = await supabase
       .from('coin_news')
       .select('coin, title')
-      .like('created_at', `${today}%`);
+      .gte('created_at', `${today}T00:00:00Z`)
+      .lte('created_at', `${today}T23:59:59Z`);
 
-    if (fetchError) {
-      throw new Error(fetchError.message);
+    if (fetchError || !newsData || newsData.length === 0) {
+      throw new Error(fetchError?.message || 'No news found for today.');
     }
 
-    if (!newsData || newsData.length === 0) {
-      throw new Error('No news found for today.');
-    }
-
-    // Step 2: Group news titles by coin
-    const groupedNews = newsData.reduce((acc, item) => {
-      acc[item.coin] = acc[item.coin] || [];
-      acc[item.coin].push(item.title);
+    // Step 2: Group news by coin
+    const grouped = newsData.reduce((acc, { coin, title }) => {
+      acc[coin] = acc[coin] || [];
+      acc[coin].push(title);
       return acc;
     }, {});
 
-    // Step 3: For each coin, summarize today's news using GPT-4
-    for (const [coin, titles] of Object.entries(groupedNews)) {
+    // Step 3: Summarize for each coin
+    for (const [coin, titles] of Object.entries(grouped)) {
       const prompt = `
-Summarize the following news headlines for the cryptocurrency **${coin}** from today's date (${today}):
+Summarize today's crypto news headlines for **${coin}**.
 
+Headlines:
 ${titles.map(title => `- ${title}`).join('\n')}
 
-Provide a clear, 3-5 sentence summary focusing on investor sentiment, important news themes, and any major price triggers.
-Use neutral, professional tone.
-      `.trim();
+Summarize sentiment, key themes, and potential impact (max 150 words).
+`.trim();
 
-      const completion = await openai.chat.completions.create({
+      const gptResponse = await openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7
+        temperature: 0.5,
       });
 
-      const summary = completion.choices[0]?.message?.content?.trim() || 'No summary generated.';
+      const summary = gptResponse.choices[0]?.message?.content?.trim() || 'No summary generated.';
 
-      // Step 4: Store the summarized result into daily_summaries table
-      const { error: upsertError } = await supabase
+      // Step 4: Upsert into daily_summaries table
+      await supabase
         .from('daily_summaries')
-        .upsert([
-          {
-            coin_symbol: coin,
-            date: today,
-            summary: summary
-          }
-        ], {
-          on_conflict: ['coin_symbol', 'date'] // Corrected!
-        });
-
-      if (upsertError) {
-        console.error(`[Summarize Error] Failed to upsert summary for ${coin}`, upsertError);
-      }
+        .upsert(
+          [{ coin, summary, date: today }],
+          { onConflict: ['coin', 'date'] } // Avoid duplicate inserts
+        );
     }
 
-    // Step 5: Return success
     return {
       statusCode: 200,
-      body: JSON.stringify({ message: 'Summaries generated and stored successfully.' })
+      body: JSON.stringify({ message: 'Daily news summarized successfully.' }),
     };
-  } catch (err) {
-    console.error('[SummarizeNewsDaily ERROR]', err);
+  } catch (error) {
+    console.error('[Summarize News Daily ERROR]', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: err.message || 'Unknown error occurred during summarization.' })
+      body: JSON.stringify({ error: error.message || 'Unknown error' }),
     };
   }
 };
