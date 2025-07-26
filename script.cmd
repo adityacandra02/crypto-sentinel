@@ -24,7 +24,6 @@ mkdir backend\utils
 
 echo // Fetch market data from CMC > backend\fetchMarketData.js
 echo // Analyze data with LLM > backend\analyzeWithLLM.js
-echo // Save insights to DB > backend\saveInsight.js
 
 :: CoinMarketCap API wrapper
 echo const fetch = require('node-fetch'); > backend\utils\coinmarketcap.js
@@ -54,8 +53,6 @@ echo     return []; >> backend\utils\coinmarketcap.js
 echo   } >> backend\utils\coinmarketcap.js
 echo }; >> backend\utils\coinmarketcap.js
 
-:: LLM utils placeholder
-echo // LLM integration handler > backend\utils\llm.js
 
 :: Create database folder and files
 mkdir database

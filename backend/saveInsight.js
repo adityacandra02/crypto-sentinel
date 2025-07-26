@@ -1,1 +1,0 @@
-// Save insights to DB 
