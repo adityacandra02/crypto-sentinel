@@ -4,7 +4,9 @@ const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
-const cryptoPanicKey = process.env.CRYPTOPANIC_API_KEY;
+// Align environment variable name with other functions
+// e.g. fetchNewsSentiment.js expects CRYPTO_PANIC_API_KEY
+const cryptoPanicKey = process.env.CRYPTO_PANIC_API_KEY;
 
 if (!supabaseUrl || !supabaseKey || !cryptoPanicKey) {
   throw new Error('Supabase or CryptoPanic credentials missing.');
