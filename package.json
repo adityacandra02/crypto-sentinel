@@ -10,6 +10,6 @@
     "react-markdown": "^10.1.0"
   },
   "scripts": {
-    "test": "node ./frontend/node_modules/jest/bin/jest.js --config backend/jest.config.cjs"
+    "test": "node ./node_modules/.bin/jest --config jest.config.cjs"
   }
 }
