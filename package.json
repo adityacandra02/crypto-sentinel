@@ -8,5 +8,8 @@
     "@supabase/supabase-js": "^2.49.4",
     "openai": "^4.91.1",
     "react-markdown": "^10.1.0"
+  },
+  "scripts": {
+    "test": "node ./frontend/node_modules/jest/bin/jest.js --config backend/jest.config.js"
   }
 }
