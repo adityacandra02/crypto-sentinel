@@ -25,7 +25,7 @@ function Summaries() {
   const triggerSummarizeDaily = async () => {
     setSummarizing(true);
     try {
-      const response = await fetch('/.netlify/functions/summarizeNewsDaily', {
+      const response = await fetch('/.netlify/functions/summarizeDailyNews', {
         method: 'POST',
       });
       const data = await response.json();
