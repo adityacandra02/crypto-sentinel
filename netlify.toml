@@ -2,6 +2,7 @@
   base = "frontend"
   publish = "build"
   functions = "../backend"
+  command = "npm ci --prefix .. && npm run --prefix .. test && npm run build"
 
 
 [functions."summarizeDailyNews"]
